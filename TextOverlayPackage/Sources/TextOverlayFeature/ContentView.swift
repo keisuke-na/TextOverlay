@@ -8,44 +8,77 @@ struct Comment: Identifiable {
     let delay: Double
 }
 
+@MainActor
+class CommentManager: ObservableObject {
+    @Published var comments: [Comment] = []
+    private let httpServer = SimpleHTTPServer()
+
+    init() {
+        httpServer.delegate = self
+        httpServer.start()
+
+        // 起動成功メッセージ
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.addComment("✅ Server ready on port 8080")
+        }
+    }
+
+    func addComment(_ text: String) {
+        let newComment = Comment(
+            text: text,
+            yPosition: CGFloat.random(in: 100...600),
+            duration: Double.random(in: 8...12),
+            delay: 0
+        )
+        comments.append(newComment)
+
+        // メモリ管理
+        if comments.count > 50 {
+            comments.removeFirst()
+        }
+    }
+
+}
+
 public struct ContentView: View {
     @State private var animationProgress: [UUID: Bool] = [:]
-
-    let comments = [
-        Comment(text: "すごい！！", yPosition: 100, duration: 8, delay: 0),
-        Comment(text: "キタ━━━(ﾟ∀ﾟ)━━━!!", yPosition: 200, duration: 10, delay: 1),
-        Comment(text: "888888888", yPosition: 300, duration: 7, delay: 2),
-        Comment(text: "わこつ〜", yPosition: 400, duration: 9, delay: 3),
-        Comment(text: "神回確定", yPosition: 150, duration: 11, delay: 4),
-        Comment(text: "ｷﾀｺﾚ", yPosition: 350, duration: 8, delay: 5),
-        Comment(text: "うぽつです", yPosition: 250, duration: 10, delay: 6),
-    ]
+    @StateObject private var commentManager = CommentManager()
 
     public var body: some View {
         GeometryReader { geometry in
             ZStack {
                 Color.clear
 
-                ForEach(comments) { comment in
+                ForEach(commentManager.comments) { comment in
                     Text(comment.text)
                         .font(.system(size: 32, weight: .bold))
                         .foregroundColor(.white)
                         .shadow(color: .black, radius: 3, x: 2, y: 2)
                         .position(
-                            x: animationProgress[comment.id] ?? false
+                            x: animationProgress[comment.id] == true
                                 ? -200
                                 : geometry.size.width + 200,
                             y: comment.yPosition
                         )
                         .animation(
                             Animation.linear(duration: comment.duration)
-                                .delay(comment.delay)
-                                .repeatForever(autoreverses: false),
+                                .delay(comment.delay),
                             value: animationProgress[comment.id]
                         )
                         .onAppear {
+                            // 初期位置を設定してからアニメーション開始
+                            if animationProgress[comment.id] == nil {
+                                animationProgress[comment.id] = false
+                            }
+
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                 animationProgress[comment.id] = true
+                            }
+
+                            // アニメーション完了後にコメントを削除
+                            DispatchQueue.main.asyncAfter(deadline: .now() + comment.duration + comment.delay + 1) {
+                                commentManager.comments.removeAll { $0.id == comment.id }
+                                animationProgress.removeValue(forKey: comment.id)
                             }
                         }
                 }
