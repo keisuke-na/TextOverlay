@@ -1,129 +1,106 @@
-# TextOverlay - macOS App
+# TextOverlay
 
-A modern macOS application using a **workspace + SPM package** architecture for clean separation between app shell and feature code.
+<div align="center">
+  <img src="TextOverlay/Assets.xcassets/AppIcon.appiconset/icon.png" width="128" height="128" alt="TextOverlay Icon">
+  <h3>画面上にニコニコ動画風のコメントを流すシンプルなmacOSアプリ</h3>
+</div>
 
-## Project Architecture
+## 概要
 
+TextOverlayは、macOSの画面全体に透明なオーバーレイを表示し、POSTされたテキストをニコニコ動画のようなスタイルで右から左へ流すアプリケーションです。
+
+起動すると「✅ Server ready on port 8080」というメッセージが画面上を流れ、HTTPサーバーが起動したことを通知します。
+
+## 特徴
+
+- 🪟 画面全体に透明なオーバーレイウィンドウ
+- 🌐 ポート8080でHTTPサーバーが自動起動
+- 💬 POSTされたテキストをニコニコ動画風に表示
+- 🎯 マウスクリックを透過（邪魔にならない）
+- ⚡ CORS対応でWebアプリから直接送信可能
+
+## システム要件
+
+- macOS 15.4以降
+- Xcode 16.0以降（ビルドする場合）
+
+## インストール方法
+
+### ソースからビルド
+
+1. リポジトリをクローン
+```bash
+git clone https://github.com/yourusername/TextOverlay.git
+cd TextOverlay
 ```
-TextOverlay/
-├── TextOverlay.xcworkspace/              # Open this file in Xcode
-├── TextOverlay.xcodeproj/                # App shell project
-├── TextOverlay/                          # App target (minimal)
-│   ├── Assets.xcassets/                # App-level assets (icons, colors)
-│   ├── TextOverlayApp.swift              # App entry point
-│   ├── TextOverlay.entitlements          # App sandbox settings
-│   └── TextOverlay.xctestplan            # Test configuration
-├── TextOverlayPackage/                   # 🚀 Primary development area
-│   ├── Package.swift                   # Package configuration
-│   ├── Sources/TextOverlayFeature/       # Your feature code
-│   └── Tests/TextOverlayFeatureTests/    # Unit tests
-└── TextOverlayUITests/                   # UI automation tests
+
+2. Xcodeでワークスペースを開く
+```bash
+open TextOverlay.xcworkspace
 ```
 
-## Key Architecture Points
+3. ビルドして実行（Cmd + R）
 
-### Workspace + SPM Structure
-- **App Shell**: `TextOverlay/` contains minimal app lifecycle code
-- **Feature Code**: `TextOverlayPackage/Sources/TextOverlayFeature/` is where most development happens
-- **Separation**: Business logic lives in the SPM package, app target just imports and displays it
+## 使い方
 
-### Buildable Folders (Xcode 16)
-- Files added to the filesystem automatically appear in Xcode
-- No need to manually add files to project targets
-- Reduces project file conflicts in teams
+1. アプリを起動すると、画面上に「✅ Server ready on port 8080」が流れます
 
-### App Sandbox
-The app is sandboxed by default with basic file access permissions. Modify `TextOverlay.entitlements` to add capabilities as needed.
+2. 別のターミナルやアプリケーションから、以下のようにテキストをPOST
 
-## Development Notes
+```bash
+curl -X POST http://localhost:8080/message \
+  -H "Content-Type: application/json" \
+  -d '{"text":"こんにちは！"}'
+```
 
-### Code Organization
-Most development happens in `TextOverlayPackage/Sources/TextOverlayFeature/` - organize your code as you prefer.
+3. 送信されたテキストが画面上を右から左へ流れます
 
-### Public API Requirements
-Types exposed to the app target need `public` access:
-```swift
-public struct SettingsView: View {
-    public init() {}
-    
-    public var body: some View {
-        // Your view code
-    }
+### JavaScriptからの送信例
+
+```javascript
+fetch('http://localhost:8080/message', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ text: 'Hello from Web!' })
+});
+```
+
+## API仕様
+
+### POST /message
+
+テキストメッセージを画面に表示
+
+**リクエスト:**
+```json
+{
+  "text": "表示したいテキスト"
 }
 ```
 
-### Adding Dependencies
-Edit `TextOverlayPackage/Package.swift` to add SPM dependencies:
-```swift
-dependencies: [
-    .package(url: "https://github.com/example/SomePackage", from: "1.0.0")
-],
-targets: [
-    .target(
-        name: "TextOverlayFeature",
-        dependencies: ["SomePackage"]
-    ),
-]
-```
+**レスポンス:**
+- 成功: `200 OK`
+- 失敗: `400 Bad Request`
 
-### Test Structure
-- **Unit Tests**: `TextOverlayPackage/Tests/TextOverlayFeatureTests/` (Swift Testing framework)
-- **UI Tests**: `TextOverlayUITests/` (XCUITest framework)
-- **Test Plan**: `TextOverlay.xctestplan` coordinates all tests
+CORS対応のため、任意のオリジンからアクセス可能です。
 
-## Configuration
+## 技術仕様
 
-### XCConfig Build Settings
-Build settings are managed through **XCConfig files** in `Config/`:
-- `Config/Shared.xcconfig` - Common settings (bundle ID, versions, deployment target)
-- `Config/Debug.xcconfig` - Debug-specific settings  
-- `Config/Release.xcconfig` - Release-specific settings
-- `Config/Tests.xcconfig` - Test-specific settings
+- SwiftUI + AppKitで実装
+- CFSocketを使用したHTTPサーバー
+- 透明・クリックスルーなフローティングウィンドウ
+- 最大50コメントまでメモリ管理
 
-### App Sandbox & Entitlements
-The app is sandboxed by default with basic file access. Edit `TextOverlay/TextOverlay.entitlements` to add capabilities:
-```xml
-<key>com.apple.security.files.user-selected.read-write</key>
-<true/>
-<key>com.apple.security.network.client</key>
-<true/>
-<!-- Add other entitlements as needed -->
-```
+## 開発者向け
 
-## macOS-Specific Features
+詳細な開発ドキュメントは [DEVELOPMENT.md](DEVELOPMENT.md) を参照してください。
 
-### Window Management
-Add multiple windows and settings panels:
-```swift
-@main
-struct TextOverlayApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-        
-        Settings {
-            SettingsView()
-        }
-    }
-}
-```
+## ライセンス
 
-### Asset Management
-- **App-Level Assets**: `TextOverlay/Assets.xcassets/` (app icon with multiple sizes, accent color)
-- **Feature Assets**: Add `Resources/` folder to SPM package if needed
+MIT
 
-### SPM Package Resources
-To include assets in your feature package:
-```swift
-.target(
-    name: "TextOverlayFeature",
-    dependencies: [],
-    resources: [.process("Resources")]
-)
-```
+## 作者
 
-## Notes
-
-### Generated with XcodeBuildMCP
-This project was scaffolded using [XcodeBuildMCP](https://github.com/cameroncooke/XcodeBuildMCP), which provides tools for AI-assisted macOS development workflows.
+[Your Name]
