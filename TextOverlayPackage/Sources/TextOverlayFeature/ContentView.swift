@@ -6,6 +6,7 @@ struct Comment: Identifiable {
     let yPosition: CGFloat
     let duration: Double
     let delay: Double
+    let textWidth: CGFloat
 }
 
 @MainActor
@@ -23,12 +24,21 @@ class CommentManager: ObservableObject {
         }
     }
 
+    private func calculateTextWidth(_ text: String) -> CGFloat {
+        let font = NSFont.systemFont(ofSize: 32, weight: .bold)
+        let attributes = [NSAttributedString.Key.font: font]
+        let size = (text as NSString).size(withAttributes: attributes)
+        return size.width
+    }
+
     func addComment(_ text: String) {
+        let textWidth = calculateTextWidth(text)
         let newComment = Comment(
             text: text,
             yPosition: CGFloat.random(in: 100...600),
             duration: Double.random(in: 8...12),
-            delay: 0
+            delay: 0,
+            textWidth: textWidth
         )
         comments.append(newComment)
 
@@ -56,7 +66,7 @@ public struct ContentView: View {
                         .shadow(color: .black, radius: 3, x: 2, y: 2)
                         .position(
                             x: animationProgress[comment.id] == true
-                                ? -200
+                                ? -(comment.textWidth + 50)
                                 : geometry.size.width + 200,
                             y: comment.yPosition
                         )
@@ -76,7 +86,7 @@ public struct ContentView: View {
                             }
 
                             // アニメーション完了後にコメントを削除
-                            DispatchQueue.main.asyncAfter(deadline: .now() + comment.duration + comment.delay + 1) {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + comment.duration + comment.delay) {
                                 commentManager.comments.removeAll { $0.id == comment.id }
                                 animationProgress.removeValue(forKey: comment.id)
                             }
