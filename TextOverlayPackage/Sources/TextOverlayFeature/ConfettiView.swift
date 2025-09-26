@@ -1,162 +1,205 @@
 import SwiftUI
+import SpriteKit
 
-struct Confetti: Identifiable {
-    let id = UUID()
-    var x: CGFloat
-    var y: CGFloat
-    var vx: CGFloat
-    var vy: CGFloat
-    let size: CGFloat
-    let color: Color
-    var angle: Double
-    var angleVelocity: Double
-    var opacity: Double = 1.0
+// MARK: - ConfettiScene
+class ConfettiScene: SKScene {
+    private var screenSize: CGSize = .zero
 
-    init(x: CGFloat, y: CGFloat, vx: CGFloat, vy: CGFloat) {
-        self.x = x
-        self.y = y
-        self.vx = vx
-        self.vy = vy
-        self.size = CGFloat.random(in: 5...15)
-        self.angle = Double.random(in: 0...(2 * .pi))
-        self.angleVelocity = Double.random(in: -0.2...0.2)
+    override func didMove(to view: SKView) {
+        super.didMove(to: view)
+        backgroundColor = .clear
 
-        let colors: [Color] = [
-            Color(red: 1.0, green: 0.027, blue: 0.431),
-            Color(red: 0.984, green: 0.337, blue: 0.027),
-            Color(red: 1.0, green: 0.745, blue: 0.043),
-            Color(red: 0.514, green: 0.22, blue: 0.925),
-            Color(red: 0.227, green: 0.525, blue: 1.0),
-            Color(red: 0.024, green: 1.0, blue: 0.647),
-            Color(red: 1.0, green: 0.263, blue: 0.396),
-            Color(red: 0, green: 0.733, blue: 0.976),
-            Color(red: 0.996, green: 0.906, blue: 0.478),
-            Color(red: 0.969, green: 0.145, blue: 0.522),
-            Color(red: 0.447, green: 0.035, blue: 0.718),
-            Color(red: 0.337, green: 0.043, blue: 0.678)
-        ]
-        self.color = colors.randomElement()!
+        // 物理世界の設定
+        physicsWorld.gravity = CGVector(dx: 0, dy: -9.8) // 現実的な重力
+
+        // シーンのアンカーポイントを左下に設定
+        anchorPoint = CGPoint(x: 0, y: 0)
     }
 
-    mutating func update(gravity: CGFloat = 0.1, friction: CGFloat = 0.99, screenHeight: CGFloat) {
-        x += vx
-        y += vy
-        vy += gravity
-        vx *= friction
-        vy *= friction
-        angle += angleVelocity
+    func triggerConfetti(screenWidth: CGFloat, screenHeight: CGFloat) {
+        screenSize = CGSize(width: screenWidth, height: screenHeight)
 
-        if y > screenHeight - 100 {
-            opacity = max(0, opacity - 0.02)
+        // canvas-confettiと同じ設定を実装
+        // origin.y = 0.6 は画面の60%の高さから発射（SpriteKitでは下から40%）
+        let centerX = screenWidth * 0.5
+        let centerY = screenHeight * 0.4  // 画面の40%の高さ（canvas-confettiのy:0.6相当）
+
+        // ランダムパラメータを生成（canvas-confettiのrandomInRange相当）
+        let angle = CGFloat.random(in: 55...125)  // 55-125度のランダム
+        let spread = CGFloat.random(in: 50...70)  // 50-70度のランダムな広がり
+        let particleCount = Int.random(in: 50...100)  // 50-100個のランダムな粒子数
+
+        // 1回のバーストで全粒子を生成（canvas-confetti準拠）
+        createBurst(
+            position: CGPoint(x: centerX, y: centerY),
+            particleCount: particleCount,
+            angle: angle,
+            spread: spread,
+            startVelocity: 45,  // canvas-confettiのデフォルト値
+            decay: 0.9  // canvas-confettiのデフォルト値
+        )
+    }
+
+    private func createBurst(
+        position: CGPoint,
+        particleCount: Int,
+        angle: CGFloat = 90,  // デフォルト90度（真上）
+        spread: CGFloat,
+        startVelocity: CGFloat,
+        decay: CGFloat,
+        scalar: CGFloat = 1.0
+    ) {
+        for _ in 0..<particleCount {
+            createConfettiParticle(
+                at: position,
+                angle: angle,
+                spread: spread,
+                velocity: startVelocity,
+                decay: decay,
+                scalar: scalar
+            )
         }
     }
 
-    var isAlive: Bool {
-        return opacity > 0
+    private func createConfettiParticle(
+        at position: CGPoint,
+        angle: CGFloat,
+        spread: CGFloat,
+        velocity: CGFloat,
+        decay: CGFloat,
+        scalar: CGFloat
+    ) {
+        // 紙吹雪の形状を作成（長方形）
+        // canvas-confettiの色配列を使用
+        let colors: [NSColor] = [
+            NSColor(red: 0.15, green: 0.8, blue: 1.0, alpha: 1.0),    // #26ccff
+            NSColor(red: 0.635, green: 0.353, blue: 0.992, alpha: 1.0), // #a25afd
+            NSColor(red: 1.0, green: 0.369, blue: 0.494, alpha: 1.0),  // #ff5e7e
+            NSColor(red: 0.533, green: 1.0, blue: 0.353, alpha: 1.0),  // #88ff5a
+            NSColor(red: 0.988, green: 1.0, blue: 0.259, alpha: 1.0),  // #fcff42
+            NSColor(red: 1.0, green: 0.651, blue: 0.176, alpha: 1.0),  // #ffa62d
+            NSColor(red: 1.0, green: 0.212, blue: 1.0, alpha: 1.0)     // #ff36ff
+        ]
+        let randomColor = colors.randomElement() ?? .red
+
+        let confetti = SKSpriteNode(color: randomColor, size: CGSize(width: 10 * scalar, height: 6 * scalar))
+        confetti.position = position
+
+        // 物理ボディを設定
+        confetti.physicsBody = SKPhysicsBody(rectangleOf: confetti.size)
+        confetti.physicsBody?.affectedByGravity = true
+        confetti.physicsBody?.linearDamping = 1.0 - decay // 空気抵抗
+        confetti.physicsBody?.angularDamping = 0.8
+        confetti.physicsBody?.density = 0.1 // 軽い素材
+
+        // 発射角度と速度を計算（canvas-confetti準拠）
+        let baseAngle = -angle * Double.pi / 180  // 角度をラジアンに変換
+        let spreadRadians = spread * Double.pi / 180
+        // canvas-confettiの式: -radAngle + ((0.5 * radSpread) - (Math.random() * radSpread))
+        // これは -spread/2 から +spread/2 の範囲でランダム
+        let angle2D = baseAngle + ((0.5 * spreadRadians) - (Double.random(in: 0...1) * spreadRadians))
+
+        // 速度ベクトルを設定（爆発的なクラッカー演出）
+        // 注意：SpriteKitのY軸は下が0なので、上向きはプラス
+        let vx = CGFloat(cos(angle2D)) * velocity * 30.0  // 横方向の勢いを倍増
+        let vy = CGFloat(abs(sin(angle2D))) * velocity * 35.0  // 上向きの爆発力を大幅増加
+        confetti.physicsBody?.velocity = CGVector(dx: vx, dy: vy)
+
+        // 回転を追加
+        let angularVelocity = CGFloat.random(in: -10...10)
+        confetti.physicsBody?.angularVelocity = angularVelocity
+
+        // Z軸回転アニメーション（3D効果のシミュレーション）
+        let wobbleAction = SKAction.sequence([
+            SKAction.scaleX(to: 0.2, duration: 0.2),
+            SKAction.scaleX(to: 1.0, duration: 0.2)
+        ])
+        let wobbleForever = SKAction.repeatForever(wobbleAction)
+        confetti.run(wobbleForever)
+
+        // フェードアウトと削除
+        let fadeOut = SKAction.sequence([
+            SKAction.wait(forDuration: 3.0),
+            SKAction.fadeOut(withDuration: 1.0),
+            SKAction.removeFromParent()
+        ])
+        confetti.run(fadeOut)
+
+        addChild(confetti)
     }
 }
 
-@MainActor
-class ConfettiViewModel: ObservableObject {
-    @Published var confettiArray: [Confetti] = []
-    private var displayLink: Timer?
+// MARK: - SpriteKit View Wrapper
+struct SpriteKitView: NSViewRepresentable {
+    let screenSize: CGSize
+    @State private var scene: ConfettiScene?
 
-    func createConfettiExplosion(x: CGFloat, y: CGFloat, direction: CGFloat) {
-        let particleCount = 100
+    func makeNSView(context: Context) -> SKView {
+        let view = SKView()
+        view.allowsTransparency = true
+        view.preferredFramesPerSecond = 60
 
-        for _ in 0..<particleCount {
-            let baseAngle = -Double.pi / 4
-            let angleVariation = (Double.random(in: 0...1) - 0.5) * Double.pi / 6
-            let angle = baseAngle + angleVariation
+        // GPU最適化設定
+        view.ignoresSiblingOrder = true
+        view.shouldCullNonVisibleNodes = true
 
-            let velocity = CGFloat.random(in: 10...30)
-            let vx = CGFloat(cos(angle)) * velocity * direction
-            let vy = CGFloat(sin(angle)) * velocity
+        // シーンを作成
+        let scene = ConfettiScene()
+        scene.size = screenSize
+        scene.scaleMode = .resizeFill
 
-            let confetti = Confetti(x: x, y: y, vx: vx, vy: vy)
-            confettiArray.append(confetti)
+        view.presentScene(scene)
+
+        // Coordinatorに保存
+        context.coordinator.scene = scene
+
+        return view
+    }
+
+    func updateNSView(_ nsView: SKView, context: Context) {
+        if let scene = nsView.scene as? ConfettiScene {
+            scene.size = screenSize
         }
     }
 
-    func triggerCrackers(screenWidth: CGFloat, screenHeight: CGFloat) {
-        let baseY = screenHeight * 0.75
-
-        createConfettiExplosion(x: 0, y: baseY, direction: 1)
-        createConfettiExplosion(x: screenWidth, y: baseY, direction: -1)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            self?.createConfettiExplosion(x: 0, y: baseY - 30, direction: 1)
-            self?.createConfettiExplosion(x: screenWidth, y: baseY - 30, direction: -1)
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            self?.createConfettiExplosion(x: 0, y: baseY + 30, direction: 1)
-            self?.createConfettiExplosion(x: screenWidth, y: baseY + 30, direction: -1)
-        }
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
     }
 
-    func startAnimation(screenHeight: CGFloat) {
-        displayLink?.invalidate()
+    class Coordinator {
+        var scene: ConfettiScene?
 
-        displayLink = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
+        init() {
+            // NotificationCenterの監視
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(triggerConfetti),
+                name: Notification.Name("TriggerConfetti"),
+                object: nil
+            )
+        }
+
+        @MainActor @objc func triggerConfetti() {
             Task { @MainActor in
-                guard let self = self else { return }
-
-                for index in self.confettiArray.indices {
-                    self.confettiArray[index].update(screenHeight: screenHeight)
-                }
-
-                self.confettiArray = self.confettiArray.filter { $0.isAlive }
-
-                if self.confettiArray.isEmpty {
-                    self.displayLink?.invalidate()
-                    self.displayLink = nil
-                }
+                scene?.triggerConfetti(
+                    screenWidth: scene?.size.width ?? 0,
+                    screenHeight: scene?.size.height ?? 0
+                )
             }
         }
-    }
 
-    func stopAnimation() {
-        displayLink?.invalidate()
-        displayLink = nil
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
     }
 }
 
+// MARK: - ConfettiView
 struct ConfettiView: View {
-    @StateObject private var viewModel = ConfettiViewModel()
     let screenSize: CGSize
 
     var body: some View {
-        Canvas { context, size in
-            for confetti in viewModel.confettiArray {
-                context.opacity = confetti.opacity
-
-                var transform = CGAffineTransform(translationX: confetti.x, y: confetti.y)
-                transform = transform.rotated(by: CGFloat(confetti.angle))
-
-                let rect = CGRect(
-                    x: -confetti.size / 2,
-                    y: -confetti.size / 2,
-                    width: confetti.size,
-                    height: confetti.size * 0.6
-                )
-
-                context.withCGContext { cgContext in
-                    cgContext.saveGState()
-                    cgContext.concatenate(transform)
-                    cgContext.setFillColor(NSColor(confetti.color).cgColor)
-                    cgContext.fill(rect)
-                    cgContext.restoreGState()
-                }
-            }
-        }
-        .allowsHitTesting(false)
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("TriggerConfetti"))) { _ in
-            viewModel.triggerCrackers(screenWidth: screenSize.width, screenHeight: screenSize.height)
-            viewModel.startAnimation(screenHeight: screenSize.height)
-        }
-        .onDisappear {
-            viewModel.stopAnimation()
-        }
+        SpriteKitView(screenSize: screenSize)
+            .allowsHitTesting(false)
     }
 }
