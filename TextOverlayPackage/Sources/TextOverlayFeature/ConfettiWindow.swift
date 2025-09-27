@@ -70,28 +70,39 @@ class ConfettiWindowController {
 
     @objc private func triggerConfetti() {
         Task { @MainActor in
-            let burstCount = 3
+            let burstCount = 4
             let interval: UInt64 = 250_000_000
 
+            let colorSets = [
+                ["#ff6b6b", "#ff5e7e", "#ff8787", "#e74c3c", "#ff6348", "#ff4757", "#ee5a24"],  // 赤系
+                ["#ffeaa7", "#fdcb6e", "#f9ca24", "#f6e58d", "#ffcc00", "#ffa502", "#ffda79"],  // 黄色系
+                ["#74b9ff", "#54a0ff", "#48dbfb", "#0abde3", "#006ba6", "#3498db", "#45b7d1"],  // 青系
+                ["#a29bfe", "#6c5ce7", "#5f3dc4", "#9b59b6", "#8e44ad", "#be2edd", "#c56cf0"]   // 紫系
+            ]
+
+            // 今回の発射で使用する色セットをランダムに選択
+            let selectedColorSet = colorSets.randomElement()!
+
             for index in 0..<burstCount {
-                let xRanges = [0.15...0.25, 0.45...0.55, 0.75...0.85]
-                let xPosition = Double.random(in: xRanges[index % 3])
+                let xPositions = [0.125, 0.375, 0.625, 0.875]
+                let angles = [45.0, 70.0, 110.0, 135.0]
+
+                let xPosition = xPositions[index % 4]
+                let angle = 90.0
 
                 let options = ConfettiOptions(
                     particleCount: Int.random(in: 100...150),
-                    angle: Double.random(in: 55...125),
+                    angle: angle,
                     spread: Double.random(in: 50...70),
-                    startVelocity: 100,
+                    startVelocity: 150,
                     decay: 0.9,
                     gravity: 1,
                     origin: .init(
                         x: xPosition,
-                        y: Double.random(in: 0.4...0.8)
+                        y: 1.05
                     ),
-                    colors: [
-                        "#26ccff", "#a25afd", "#ff5e7e",
-                        "#88ff5a", "#fcff42", "#ffa62d", "#ff36ff"
-                    ],
+                    colors: selectedColorSet,
+                    shapes: [.square],
                     scalar: 1.5
                 )
 
