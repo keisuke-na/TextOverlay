@@ -14,6 +14,8 @@ class CommentManager: ObservableObject {
     @Published var comments: [Comment] = []
     private let httpServer = SimpleHTTPServer()
 
+    static let shared = CommentManager()
+
     init() {
         httpServer.delegate = self
         httpServer.start()
@@ -59,54 +61,21 @@ class CommentManager: ObservableObject {
 }
 
 public struct ContentView: View {
-    @State private var animationProgress: [UUID: Bool] = [:]
-    @StateObject private var commentManager = CommentManager()
-
     public var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                Color.clear
+        ZStack {
+            Color.clear
+                .frame(width: 1, height: 1)
 
-                // 独立ウィンドウで紙吹雪を初期化（一度だけ）
-                ConfettiWindowInitializer()
+            // 独立ウィンドウで紙吹雪を初期化（一度だけ）
+            ConfettiWindowInitializer()
 
-                ForEach(commentManager.comments) { comment in
-                    Text(comment.text)
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white)
-                        .shadow(color: .black, radius: 3, x: 2, y: 2)
-                        .position(
-                            x: animationProgress[comment.id] == true
-                                ? -(comment.textWidth + 50)
-                                : geometry.size.width + 200,
-                            y: comment.yPosition
-                        )
-                        .animation(
-                            Animation.linear(duration: comment.duration)
-                                .delay(comment.delay),
-                            value: animationProgress[comment.id]
-                        )
-                        .onAppear {
-                            // 初期位置を設定してからアニメーション開始
-                            if animationProgress[comment.id] == nil {
-                                animationProgress[comment.id] = false
-                            }
-
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                animationProgress[comment.id] = true
-                            }
-
-                            // アニメーション完了後にコメントを削除
-                            DispatchQueue.main.asyncAfter(deadline: .now() + comment.duration + comment.delay) {
-                                commentManager.comments.removeAll { $0.id == comment.id }
-                                animationProgress.removeValue(forKey: comment.id)
-                            }
-                        }
-                }
-            }
+            // 独立ウィンドウでコメントを初期化（一度だけ）
+            CommentWindowInitializer()
         }
-        .background(Color.clear)
     }
 
-    public init() {}
+    public init() {
+        // CommentManagerのシングルトンインスタンスが初期化される
+        _ = CommentManager.shared
+    }
 }

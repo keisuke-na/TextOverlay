@@ -20,11 +20,11 @@ struct WindowAccessor: NSViewRepresentable {
             if let window = view.window {
                 window.isOpaque = false
                 window.backgroundColor = .clear
-                window.level = .floating
-                window.collectionBehavior = [.canJoinAllSpaces, .stationary]
+                window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.mainMenuWindow)))
+                window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
                 window.ignoresMouseEvents = true
                 window.hasShadow = false
-                window.styleMask = [.borderless]
+                window.styleMask = [.borderless, .nonactivatingPanel]
                 window.titlebarAppearsTransparent = true
                 window.titleVisibility = .hidden
 

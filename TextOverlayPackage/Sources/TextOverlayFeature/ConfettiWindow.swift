@@ -16,10 +16,10 @@ class ConfettiWindowController {
     }
 
     private func setupWindow() {
-        // 透明なオーバーレイウィンドウを作成
-        let window = NSWindow(
+        // 透明なオーバーレイパネルを作成（NSPanelに変更）
+        let window = NSPanel(
             contentRect: NSScreen.main?.frame ?? .zero,
-            styleMask: [.borderless],
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
@@ -30,7 +30,10 @@ class ConfettiWindowController {
         window.hasShadow = false
 
         // 最前面に表示
-        window.level = .screenSaver
+        window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.mainMenuWindow)))
+
+        // 全てのSpaceで表示、フルスクリーンの上にも表示
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
         // クリックスルー（マウスイベントを下のウィンドウに通す）
         window.ignoresMouseEvents = true
