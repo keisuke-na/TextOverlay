@@ -13,16 +13,16 @@ struct Comment: Identifiable {
 class CommentManager: ObservableObject {
     @Published var comments: [Comment] = []
     private let httpServer = SimpleHTTPServer()
-    private var lastConfettiTime: Date?
-    private let confettiCooldown: TimeInterval = 3.0  // 3秒のクールダウン
 
     init() {
         httpServer.delegate = self
         httpServer.start()
 
-        // 起動成功メッセージ
+        // 起動成功メッセージとバージョン情報
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.addComment("✅ Server ready on port 8080")
+            self?.addComment("📌 Version: 2.1 - Queue-based Confetti System")
+            self?.addComment("🔧 Fixed: Consecutive 888 triggers now work properly")
         }
     }
 
@@ -34,16 +34,14 @@ class CommentManager: ObservableObject {
     }
 
     func addComment(_ text: String) {
-        // "8"が3回以上連続しているかチェック（デバウンス処理付き）
+        print("📥 addComment called with: \"\(text)\"")
+
+        // "8"が3回以上連続しているかチェック
         if text.contains("888") {
-            let now = Date()
-            if let lastTime = lastConfettiTime,
-               now.timeIntervalSince(lastTime) < confettiCooldown {
-                // クールダウン中はエフェクトをスキップ
-            } else {
-                lastConfettiTime = now
-                NotificationCenter.default.post(name: Notification.Name("TriggerConfetti"), object: nil)
-            }
+            print("🎊 888 detected! Posting TriggerConfetti notification")
+            // 毎回即座に紙吹雪を発射（クールダウンなし）
+            NotificationCenter.default.post(name: Notification.Name("TriggerConfetti"), object: nil)
+            print("📮 TriggerConfetti notification posted")
         }
 
         let textWidth = calculateTextWidth(text)
@@ -73,9 +71,8 @@ public struct ContentView: View {
             ZStack {
                 Color.clear
 
-                // Confetti効果を追加
-                ConfettiView(screenSize: geometry.size)
-                    .zIndex(100)
+                // 独立ウィンドウで紙吹雪を初期化（一度だけ）
+                ConfettiWindowInitializer()
 
                 ForEach(commentManager.comments) { comment in
                     Text(comment.text)

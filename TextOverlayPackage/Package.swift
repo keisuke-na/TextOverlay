@@ -5,12 +5,16 @@ import PackageDescription
 
 let package = Package(
     name: "TextOverlayFeature",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS(.v14)],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "TextOverlayFeature",
             targets: ["TextOverlayFeature"]
+        ),
+        .library(
+            name: "SwiftConfetti",
+            targets: ["SwiftConfetti"]
         ),
     ],
     targets: [
@@ -18,9 +22,13 @@ let package = Package(
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "TextOverlayFeature",
+            dependencies: ["SwiftConfetti"],
             swiftSettings: [
                 .unsafeFlags(["-framework", "SpriteKit"])
             ]
+        ),
+        .target(
+            name: "SwiftConfetti"
         ),
         .testTarget(
             name: "TextOverlayFeatureTests",
