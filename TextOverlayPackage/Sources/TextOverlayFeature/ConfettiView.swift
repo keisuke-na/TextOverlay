@@ -30,7 +30,7 @@ struct ConfettiCanvasView: NSViewRepresentable {
                         particleCount: particleCount,
                         angle: angle,
                         spread: spread,
-                        startVelocity: 45,
+                        startVelocity: 100,
                         decay: 0.9,
                         gravity: 1,
                         origin: .init(x: originX, y: originY),

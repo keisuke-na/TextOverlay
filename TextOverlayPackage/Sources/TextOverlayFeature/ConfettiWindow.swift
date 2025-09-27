@@ -67,7 +67,7 @@ class ConfettiWindowController {
             particleCount: Int.random(in: 50...100),
             angle: Double.random(in: 55...125),
             spread: Double.random(in: 50...70),
-            startVelocity: 45,
+            startVelocity: 100,
             decay: 0.9,
             gravity: 1,
             origin: .init(

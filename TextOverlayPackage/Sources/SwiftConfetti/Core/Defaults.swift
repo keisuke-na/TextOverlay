@@ -25,7 +25,7 @@ public struct ConfettiDefaults {
         "#ff36ff"
     ]
     public static let disableForReducedMotion: Bool = false
-    public static let scalar: Double = 1
+    public static let scalar: Double = 2
 }
 
 /// RGB色構造体
