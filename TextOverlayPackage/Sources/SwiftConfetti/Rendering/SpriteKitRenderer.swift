@@ -149,7 +149,8 @@ public class ConfettiSpriteKitRenderer: ConfettiRenderer {
     }
 
     private func createCircleNode(particle: Particle) -> SKShapeNode {
-        let node = SKShapeNode(circleOfRadius: 5)
+        let radius = CGFloat(5 * particle.scalar)
+        let node = SKShapeNode(circleOfRadius: radius)
         node.fillColor = particle.color.nsColor
         node.strokeColor = .clear
 
@@ -164,8 +165,8 @@ public class ConfettiSpriteKitRenderer: ConfettiRenderer {
 
     private func createStarNode(particle: Particle) -> SKShapeNode {
         let path = CGMutablePath()
-        let outerRadius: CGFloat = 5
-        let innerRadius: CGFloat = 2.5
+        let outerRadius = CGFloat(5 * particle.scalar)
+        let innerRadius = CGFloat(2.5 * particle.scalar)
         let spikes = 5
         let step = CGFloat.pi / CGFloat(spikes)
         var rot = CGFloat.pi / 2 * 3

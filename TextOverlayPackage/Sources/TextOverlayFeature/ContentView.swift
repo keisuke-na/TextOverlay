@@ -21,8 +21,6 @@ class CommentManager: ObservableObject {
         // 起動成功メッセージとバージョン情報
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.addComment("✅ Server ready on port 8080")
-            self?.addComment("📌 Version: 2.1 - Queue-based Confetti System")
-            self?.addComment("🔧 Fixed: Consecutive 888 triggers now work properly")
         }
     }
 
@@ -34,10 +32,12 @@ class CommentManager: ObservableObject {
     }
 
     func addComment(_ text: String) {
-        // "8"が3回以上連続しているかチェック
         if text.contains("888") {
-            // 毎回即座に紙吹雪を発射（クールダウンなし）
             NotificationCenter.default.post(name: Notification.Name("TriggerConfetti"), object: nil)
+        }
+
+        if text.contains("***") {
+            // NotificationCenter.default.post(name: Notification.Name("TriggerConfettiFirework"), object: nil)
         }
 
         let textWidth = calculateTextWidth(text)
