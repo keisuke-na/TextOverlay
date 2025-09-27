@@ -74,21 +74,25 @@ class ConfettiWindowController {
             let interval: UInt64 = 250_000_000
 
             for index in 0..<burstCount {
+                let xRanges = [0.15...0.25, 0.45...0.55, 0.75...0.85]
+                let xPosition = Double.random(in: xRanges[index % 3])
+
                 let options = ConfettiOptions(
-                    particleCount: Int.random(in: 50...100),
+                    particleCount: Int.random(in: 100...150),
                     angle: Double.random(in: 55...125),
                     spread: Double.random(in: 50...70),
                     startVelocity: 100,
                     decay: 0.9,
                     gravity: 1,
                     origin: .init(
-                        x: Double.random(in: 0.1...0.9),
+                        x: xPosition,
                         y: Double.random(in: 0.4...0.8)
                     ),
                     colors: [
                         "#26ccff", "#a25afd", "#ff5e7e",
                         "#88ff5a", "#fcff42", "#ffa62d", "#ff36ff"
-                    ]
+                    ],
+                    scalar: 1.5
                 )
 
                 confettiInstance?.fire(options)
