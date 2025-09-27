@@ -3,14 +3,14 @@ import AppKit
 
 /// canvas-confettiと同一のデフォルト設定
 public struct ConfettiDefaults {
-    public static let particleCount: Int = 50
+    public static let particleCount: Int = 100
     public static let angle: Double = 90
-    public static let spread: Double = 45
+    public static let spread: Double = 120
     public static let startVelocity: Double = 45
     public static let decay: Double = 0.9
     public static let gravity: Double = 1
     public static let drift: Double = 0
-    public static let ticks: Int = 200
+    public static let ticks: Int = 120
     public static let x: Double = 0.5
     public static let y: Double = 0.5
     public static let shapes: [String] = ["square", "circle"]
@@ -140,11 +140,26 @@ public struct SendableImage: @unchecked Sendable {
 }
 
 /// 紙吹雪の形状
-public enum ConfettiShape: Sendable {
+public enum ConfettiShape: Sendable, Equatable {
     case square
     case circle
     case star
     case path(String, matrix: [Double]?)
     case bitmap(SendableImage, matrix: [Double]?)
     case text(String, scalar: Double?, fontFamily: String?, color: String?)
+
+    public static func == (lhs: ConfettiShape, rhs: ConfettiShape) -> Bool {
+        switch (lhs, rhs) {
+        case (.square, .square), (.circle, .circle), (.star, .star):
+            return true
+        case let (.path(lPath, lMatrix), .path(rPath, rMatrix)):
+            return lPath == rPath && lMatrix == rMatrix
+        case let (.bitmap(lImage, lMatrix), .bitmap(rImage, rMatrix)):
+            return lImage.image == rImage.image && lMatrix == rMatrix
+        case let (.text(lText, lScalar, lFont, lColor), .text(rText, rScalar, rFont, rColor)):
+            return lText == rText && lScalar == rScalar && lFont == rFont && lColor == rColor
+        default:
+            return false
+        }
+    }
 }

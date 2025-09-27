@@ -34,14 +34,10 @@ class CommentManager: ObservableObject {
     }
 
     func addComment(_ text: String) {
-        print("📥 addComment called with: \"\(text)\"")
-
         // "8"が3回以上連続しているかチェック
         if text.contains("888") {
-            print("🎊 888 detected! Posting TriggerConfetti notification")
             // 毎回即座に紙吹雪を発射（クールダウンなし）
             NotificationCenter.default.post(name: Notification.Name("TriggerConfetti"), object: nil)
-            print("📮 TriggerConfetti notification posted")
         }
 
         let textWidth = calculateTextWidth(text)

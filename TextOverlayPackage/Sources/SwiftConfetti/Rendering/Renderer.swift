@@ -172,8 +172,6 @@ public class ConfettiBitmapRenderer: ConfettiRenderer {
         let width = max(Int(view.bounds.width * scale), 100)
         let height = max(Int(view.bounds.height * scale), 100)
 
-        print("🖼 Setting up bitmap context: \(width)x\(height), scale: \(scale)")
-
         let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
         bitmapContext = CGContext(
             data: nil,
@@ -252,13 +250,9 @@ public class ConfettiBitmapRenderer: ConfettiRenderer {
         }
 
         presentCount += 1
+        _ = presentCount
         // 既にメインスレッドで実行されているため、直接設定
         view.layer?.contents = cgImage
-
-        // 最初と10フレームごとにログ
-        if presentCount == 1 || presentCount % 10 == 0 {
-            print("✅ Presented frame \(presentCount)")
-        }
     }
 
     private func drawSquare(in context: CGContext, particle: Particle) {

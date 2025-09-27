@@ -8,7 +8,8 @@ public class ConfettiSpriteKitRenderer: ConfettiRenderer {
     private weak var view: NSView?
     private var skView: SKView?
     private var scene: ConfettiSKScene?
-    private var particleNodes: [Int: SKNode] = [:]  // tick IDとノードのマッピング
+    private var particleNodes: [Int: SKNode] = [:]  // パーティクルIDとノードのマッピング
+    private var staleParticleIDs: Set<Int> = []
 
     public init(view: NSView) {
         self.view = view
@@ -26,11 +27,10 @@ public class ConfettiSpriteKitRenderer: ConfettiRenderer {
         // SKViewを作成
         let spriteView = SKView(frame: view.bounds)
         spriteView.allowsTransparency = true
-        // SKViewはbackgroundColorではなく、シーンの背景色を使用
 
         // パフォーマンス設定
-        spriteView.ignoresSiblingOrder = true  // 描画順序を最適化
-        spriteView.shouldCullNonVisibleNodes = true  // 見えないノードをカル
+        spriteView.ignoresSiblingOrder = true
+        spriteView.shouldCullNonVisibleNodes = true
 
         // デバッグ情報（必要に応じてコメントアウト）
         // spriteView.showsFPS = true
@@ -49,38 +49,34 @@ public class ConfettiSpriteKitRenderer: ConfettiRenderer {
 
         self.skView = spriteView
         self.scene = confettiScene
-
-        print("🎮 SpriteKit renderer initialized - GPU acceleration enabled!")
     }
 
     public func clear() {
-        // 全てのパーティクルノードを削除
-        scene?.removeAllChildren()
-        particleNodes.removeAll()
+        // 今フレームで更新されなかったノードを後で削除するためにマーク
+        staleParticleIDs = Set(particleNodes.keys)
     }
 
     public func drawParticle(_ particle: Particle, size: CGSize) {
         guard let scene = scene else { return }
 
+        // 今フレームで使用するIDをマーク
+        staleParticleIDs.remove(particle.id)
+
         // 既存のノードを再利用するか新規作成
         let node: SKNode
-        if let existingNode = particleNodes[particle.tick] {
+        if let existingNode = particleNodes[particle.id] as? SKShapeNode {
             node = existingNode
+            if particle.shape == .square {
+                updateSquareNodePath(existingNode, particle: particle, canvasSize: size)
+            }
         } else {
-            // 新しいパーティクルノードを作成
-            node = createParticleNode(for: particle)
-            particleNodes[particle.tick] = node
+            node = createParticleNode(for: particle, canvasSize: size)
+            particleNodes[particle.id] = node
             scene.addChild(node)
         }
 
-        // 位置と回転を更新
-        node.position = CGPoint(x: particle.x, y: size.height - particle.y)  // Y座標を反転
-        node.zRotation = CGFloat(particle.tiltAngle)
-
-        // スケールを更新
-        let scale = CGFloat(particle.scalar)
-        node.xScale = scale
-        node.yScale = particle.flat ? scale * 0.5 : scale
+        // SpriteKit座標系での位置を反映（下原点）
+        node.position = CGPoint(x: particle.x, y: size.height - particle.y)
 
         // 不透明度を更新
         node.alpha = CGFloat(particle.opacity)
@@ -88,38 +84,68 @@ public class ConfettiSpriteKitRenderer: ConfettiRenderer {
         // 寿命が尽きたら削除
         if particle.opacity <= 0 {
             node.removeFromParent()
-            particleNodes.removeValue(forKey: particle.tick)
+            particleNodes.removeValue(forKey: particle.id)
         }
     }
 
     public func present() {
-        // SpriteKitは自動的にレンダリングするため、特別な処理は不要
-        // ただし、必要に応じてシーンの更新を強制できる
+        // 今フレームで更新されなかったノードを削除
+        for id in staleParticleIDs {
+            if let node = particleNodes.removeValue(forKey: id) {
+                node.removeFromParent()
+            }
+        }
+        staleParticleIDs.removeAll()
+
+        // SpriteKitは自動描画だが、明示的に再開
         skView?.scene?.isPaused = false
     }
 
-    private func createParticleNode(for particle: Particle) -> SKNode {
+    private func createParticleNode(for particle: Particle, canvasSize: CGSize) -> SKNode {
         switch particle.shape {
         case .square:
-            return createSquareNode(particle: particle)
+            return createSquareNode(particle: particle, canvasSize: canvasSize)
         case .circle:
             return createCircleNode(particle: particle)
         case .star:
             return createStarNode(particle: particle)
         default:
-            // デフォルトは正方形
-            return createSquareNode(particle: particle)
+            return createSquareNode(particle: particle, canvasSize: canvasSize)
         }
     }
 
-    private func createSquareNode(particle: Particle) -> SKSpriteNode {
-        let node = SKSpriteNode(color: particle.color.nsColor, size: CGSize(width: 10, height: 10))
-
-        // 物理ボディを追加（オプション - パフォーマンスのためコメントアウト可能）
-        // node.physicsBody = SKPhysicsBody(rectangleOf: node.size)
-        // node.physicsBody?.affectedByGravity = false  // 重力は手動計算済み
-
+    private func createSquareNode(particle: Particle, canvasSize: CGSize) -> SKShapeNode {
+        let path = createSquarePath(for: particle, canvasSize: canvasSize)
+        let node = SKShapeNode(path: path)
+        node.fillColor = particle.color.nsColor
+        node.strokeColor = .clear
         return node
+    }
+
+    private func createSquarePath(for particle: Particle, canvasSize: CGSize) -> CGPath {
+        let path = CGMutablePath()
+
+        let baseX = particle.x
+        let baseY = canvasSize.height - particle.y
+        let wobbleX = particle.wobbleX
+        let wobbleY = canvasSize.height - particle.wobbleY
+        let x1 = particle.x1
+        let y1 = canvasSize.height - particle.y1
+        let x2 = particle.x2
+        let y2 = canvasSize.height - particle.y2
+
+        path.move(to: .zero)
+        path.addLine(to: CGPoint(x: CGFloat(wobbleX - baseX), y: CGFloat(y1 - baseY)))
+        path.addLine(to: CGPoint(x: CGFloat(x2 - baseX), y: CGFloat(y2 - baseY)))
+        path.addLine(to: CGPoint(x: CGFloat(x1 - baseX), y: CGFloat(wobbleY - baseY)))
+        path.closeSubpath()
+
+        return path
+    }
+
+    private func updateSquareNodePath(_ node: SKShapeNode, particle: Particle, canvasSize: CGSize) {
+        node.path = createSquarePath(for: particle, canvasSize: canvasSize)
+        node.fillColor = particle.color.nsColor
     }
 
     private func createCircleNode(particle: Particle) -> SKShapeNode {
@@ -127,11 +153,16 @@ public class ConfettiSpriteKitRenderer: ConfettiRenderer {
         node.fillColor = particle.color.nsColor
         node.strokeColor = .clear
 
+        let wobbleAction = SKAction.sequence([
+            SKAction.scaleX(to: 0.2, duration: 0.2),
+            SKAction.scaleX(to: 1.0, duration: 0.2)
+        ])
+        node.run(SKAction.repeatForever(wobbleAction))
+
         return node
     }
 
     private func createStarNode(particle: Particle) -> SKShapeNode {
-        // 星形のパスを作成
         let path = CGMutablePath()
         let outerRadius: CGFloat = 5
         let innerRadius: CGFloat = 2.5
@@ -161,6 +192,12 @@ public class ConfettiSpriteKitRenderer: ConfettiRenderer {
         node.fillColor = particle.color.nsColor
         node.strokeColor = .clear
 
+        let wobbleAction = SKAction.sequence([
+            SKAction.scaleX(to: 0.2, duration: 0.2),
+            SKAction.scaleX(to: 1.0, duration: 0.2)
+        ])
+        node.run(SKAction.repeatForever(wobbleAction))
+
         return node
     }
 }
@@ -171,16 +208,11 @@ private class ConfettiSKScene: SKScene {
 
     override func didMove(to view: SKView) {
         super.didMove(to: view)
-
-        // 背景を透明に
         backgroundColor = .clear
-
-        // 物理演算は使わない（パーティクルの位置は既に計算済み）
         physicsWorld.gravity = CGVector(dx: 0, dy: 0)
     }
 
     override func update(_ currentTime: TimeInterval) {
-        // 画面外のノードを自動削除（パフォーマンス最適化）
         enumerateChildNodes(withName: "*") { node, _ in
             if node.position.y < -100 ||
                node.position.x < -100 ||

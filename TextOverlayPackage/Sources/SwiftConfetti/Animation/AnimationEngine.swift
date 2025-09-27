@@ -82,8 +82,6 @@ public class ConfettiAnimation {
         self.particles = particles
         self.size = size
         self.renderer = renderer
-        print("🎬 ConfettiAnimation v1.2 - Queue-based animation")
-        print("📊 Initialized with \(particles.count) particles")
     }
 
     /// アニメーションを開始（非ブロッキング）
@@ -96,7 +94,6 @@ public class ConfettiAnimation {
 
         isAnimating = true
         self.completion = completion
-        print("🎬 Starting animation...")
 
         // レンダラーからビューを取得してAnimationEngineに渡す
         let view: NSView?
@@ -107,13 +104,11 @@ public class ConfettiAnimation {
         } else {
             view = nil
         }
-        print("🎨 Got view from renderer: \(view != nil)")
 
         animationEngine = AnimationEngine(view: view)
         animationEngine?.frame { [weak self] in
             self?.updateFrame { shouldContinue in
                 if !shouldContinue {
-                    print("🛑 Animation stopping...")
                     self?.stop()
                 }
             }
@@ -124,20 +119,23 @@ public class ConfettiAnimation {
     @MainActor
     private func updateFrame(completion: @escaping (Bool) -> Void) {
         frameCount += 1
-        if frameCount % 30 == 0 {
-            print("🔄 Frame \(frameCount), particles: \(particles.count)")
-        }
+        _ = frameCount
 
         // canvas-confettiのanimate関数と同じロジック
         renderer.clear()
 
         // パーティクルを更新（生存しているものだけ残す）
+        let beforeCount = particles.count
         particles = particles.filter { particle in
             return updateParticle(particle)
         }
+        let afterCount = particles.count
+        _ = beforeCount
+        _ = afterCount
 
         // 描画
-        for particle in particles {
+        for (index, particle) in particles.enumerated() {
+            _ = index
             renderer.drawParticle(particle, size: size)
         }
 
@@ -154,7 +152,6 @@ public class ConfettiAnimation {
             if idleFrameCount < 5 {
                 completion(true) // 少しだけ待機
             } else {
-                print("🛑 Stopping animation after brief idle")
                 completion(false) // 停止
             }
         } else {
@@ -166,20 +163,16 @@ public class ConfettiAnimation {
 
     /// パーティクルを追加（canvas-confettiのaddFettis相当）
     public func addParticles(_ newParticles: [Particle]) {
-        print("🆕 Adding \(newParticles.count) new particles to existing \(particles.count) particles")
         particles.append(contentsOf: newParticles)
-        print("📦 Total particles now: \(particles.count)")
 
         // アイドル状態をリセット
         if isIdle {
             isIdle = false
             idleFrameCount = 0
-            print("🔄 Reset idle state due to new particles")
         }
 
         // アニメーションが停止していたら再開
         if !isAnimating && !particles.isEmpty {
-            print("⚠️ Animation was stopped, restarting...")
             start(completion: completion ?? {})
         }
     }

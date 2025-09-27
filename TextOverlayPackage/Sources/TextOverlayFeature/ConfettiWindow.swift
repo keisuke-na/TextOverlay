@@ -50,7 +50,6 @@ class ConfettiWindowController {
 
         self.confettiWindow = window
 
-        print("🪟 Confetti window created - Completely independent layer")
     }
 
     private func setupNotificationObserver() {
@@ -63,8 +62,6 @@ class ConfettiWindowController {
     }
 
     @objc private func triggerConfetti() {
-        print("🎆 Independent window: Firing confetti immediately!")
-
         // ランダムな設定で即座に発射
         let options = ConfettiOptions(
             particleCount: Int.random(in: 50...100),
@@ -88,7 +85,6 @@ class ConfettiWindowController {
 
     func start() {
         // 初期化時に自動的に開始
-        print("🚀 Confetti window controller started")
     }
 }
 

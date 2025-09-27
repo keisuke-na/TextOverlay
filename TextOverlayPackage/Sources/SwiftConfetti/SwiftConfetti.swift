@@ -59,18 +59,14 @@ public class SwiftConfetti {
 
             self.canvas = autoCanvas
             self.isLibCanvas = true
-            print("📋 Auto-created fullscreen canvas for confetti")
         }
 
         // 必ずrendererを作成（canvasは必ず存在する）
         self.renderer = ConfettiSpriteKitRenderer(view: self.canvas!)
-        print("🚀 SpriteKit renderer initialized with GPU acceleration!")
     }
 
     /// パーティクルを発射（canvas-confettiのfire関数）
     public func fire(_ options: ConfettiOptions = .default) {
-        print("🔥 SwiftConfetti.fire() called - v2.2 Queue-based fix")
-
         let disableForReducedMotion = globalDisableForReducedMotion || options.disableForReducedMotion
 
         // Reduced motionチェック
@@ -85,28 +81,22 @@ public class SwiftConfetti {
             return
         }
 
-        print("📏 Canvas bounds: \(targetCanvas.bounds)")
-
         let size = CGSize(width: targetCanvas.bounds.width, height: targetCanvas.bounds.height)
 
         // パーティクル生成
         let particles = createParticles(options: options, size: size)
-        print("🎯 Created \(particles.count) particles")
 
         // アニメーション実行
         if let animationObj = animationObj {
             // 既存のアニメーションに追加
-            print("➕ Adding particles to existing animation")
             animationObj.addParticles(particles)
         } else {
             // 新規アニメーション開始
-            print("🎬 Starting new animation")
             animationObj = ConfettiAnimation(particles: particles, size: size, renderer: renderer)
 
             // アニメーション開始（非ブロッキング）
             animationObj?.start { [weak self] in
                 Task { @MainActor in
-                    print("🏁 Animation completed")
                     self?.onAnimationComplete()
                 }
             }
@@ -182,9 +172,7 @@ public class SwiftConfetti {
     }
 
     private func onAnimationComplete() {
-        print("🏁 onAnimationComplete called - Current animationObj: \(animationObj != nil)")
         // アニメーションオブジェクトは維持（常に再利用）
-        print("♻️ Keeping animation object for instant reuse")
     }
 }
 

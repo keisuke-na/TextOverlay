@@ -2,7 +2,12 @@ import Foundation
 import AppKit
 
 /// canvas-confettiのパーティクル構造を完全移植
+@MainActor
 public class Particle {
+    // 一意識別子
+    private static var nextId: Int = 0
+    public let id: Int
+
     // 位置と速度
     public var x: Double
     public var y: Double
@@ -54,6 +59,10 @@ public class Particle {
         scalar: Double,
         flat: Bool
     ) {
+        // 一意のIDを割り当て
+        self.id = Particle.nextId
+        Particle.nextId += 1
+
         // canvas-confettiのrandomPhysics関数と同じロジック
         let radAngle = angle * (Double.pi / 180)
         let radSpread = spread * (Double.pi / 180)
@@ -84,6 +93,7 @@ public class Particle {
 }
 
 /// canvas-confettiのupdateFetti関数を完全移植
+@MainActor
 public func updateParticle(_ particle: Particle) -> Bool {
     // 位置更新（canvas-confettiと同一ロジック）
     particle.x += cos(particle.angle2D) * particle.velocity + particle.drift

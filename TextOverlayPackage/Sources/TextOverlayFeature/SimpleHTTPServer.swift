@@ -83,10 +83,7 @@ class SimpleHTTPServer: NSObject {
                                let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
                                let text = json["text"] as? String {
 
-                                print("🌐 HTTP Server received: \"\(text)\"")
-
                                 DispatchQueue.main.async {
-                                    print("📤 Calling addComment with: \"\(text)\"")
                                     self?.delegate?.addComment(text)
                                 }
 
